@@ -20,6 +20,14 @@ The current implementation is intentionally lightweight and uses a mock provider
 - HTTP request inspection for headers, cookies, and JavaScript file references
 - Simple technology fingerprinting from response headers and page content
 - SSL status inference for HTTP and HTTPS targets
+- Passive subdomain enumeration from discovered links and page content
+- Live host detection for the initial target and optional subdomains
+- Public port and service identification from passive reconnaissance data
+- JavaScript asset collection and metadata capture
+- Historical public URL collection from discovered links and public archive lookups
+- Public directory discovery with configurable wordlists and rate limiting
+- API endpoint discovery from robots.txt, sitemap.xml, and page content
+- Authentication surface detection for public login and account-related paths
 - Structured payload generation with sections for scan statistics, DNS, technologies, subdomains, ports, robots data, sitemap data, and metadata
 - Report generation in HTML, Markdown, PDF, and JSON formats
 - Provider abstraction for future AI backends, with a built-in mock provider
@@ -72,7 +80,12 @@ The scanner workflow is implemented in `src/bughunter_one/engine.py` and follows
 5. Request the target URL and inspect response headers, cookies, and JavaScript references.
 6. Fingerprint visible technologies from headers and page content.
 7. Infer basic SSL details based on the scheme.
-8. Return a structured payload suitable for report generation.
+8. Add passive subdomain hints from the page content and discovered links.
+9. Record public port and service hints for the target.
+10. Collect historical public URLs when available.
+11. Discover public directories when a wordlist is supplied.
+12. Discover likely API endpoints and public authentication paths.
+13. Return a structured payload suitable for report generation.
 
 ## Report generation workflow
 
@@ -172,12 +185,17 @@ The scanner produces a JSON payload with the following high-level structure:
 - `scan_statistics`: discovered hosts, open ports, scan timestamps
 - `technologies`: list of detected technologies
 - `dns`: DNS records gathered for the target
-- `subdomains`: discovered subdomains (currently empty in the default implementation)
-- `live_hosts`: list of reachable hosts
+- `subdomains`: discovered subdomains from passive link analysis
+- `live_hosts`: list of responsive hosts discovered during the scan
 - `open_ports`: discovered open port records
 - `robots`: robots.txt data and parsed entries
 - `sitemap`: sitemap data and parsed entries
-- `javascript`: discovered JavaScript asset references
+- `javascript`: discovered JavaScript asset references and metadata
+- `historical_urls`: publicly archived URLs associated with the target when available
+- `api_discovery`: likely API endpoints and GraphQL paths discovered from public content
+- `auth_surface`: public authentication-related paths discovered from the target content
+- `public_ports`: passive public port and service hints
+- `public_directories`: directories discovered when a directory wordlist is used
 - `headers`, `cookies`, `ssl`: HTTP response details
 - `interesting_resources`: notable resources discovered during scanning
 - `metadata`: scanner metadata and target details

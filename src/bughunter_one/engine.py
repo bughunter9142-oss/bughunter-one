@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import re
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin, urlparse
@@ -10,8 +11,17 @@ import requests
 
 
 class ReconnaissanceEngine:
-    def __init__(self, timeout: int = 5):
+    def __init__(
+        self,
+        timeout: int = 5,
+        active_checks: bool = False,
+        directory_wordlist: Optional[List[str]] = None,
+        directory_rate_limit: float = 0.2,
+    ):
         self.timeout = timeout
+        self.active_checks = active_checks
+        self.directory_wordlist = directory_wordlist
+        self.directory_rate_limit = directory_rate_limit
 
     def scan_target(self, target: str) -> Dict[str, Any]:
         validated = self._validate_target(target)
@@ -33,7 +43,7 @@ class ReconnaissanceEngine:
             "open_ports": [],
             "robots": {"url": urljoin(validated.rstrip("/") + "/", "robots.txt"), "entries": []},
             "sitemap": {"url": urljoin(validated.rstrip("/") + "/", "sitemap.xml"), "entries": []},
-            "javascript": {"files": []},
+            "javascript": {"files": [], "metadata": {"source": "response-body"}},
             "historical_urls": [],
             "api_discovery": [],
             "auth_surface": [],
@@ -43,6 +53,8 @@ class ReconnaissanceEngine:
             "ssl": {},
             "interesting_resources": [],
             "metadata": {"scanner": "bughunter-one", "target": validated},
+            "public_ports": [],
+            "public_directories": [],
         }
 
         dns_records = self._call_dns_resolver(host)
@@ -62,11 +74,28 @@ class ReconnaissanceEngine:
         payload["headers"] = self._normalize_headers(response.get("headers", {}))
         payload["cookies"] = response.get("cookies", [])
         payload["javascript"]["files"] = self._extract_js_files(response.get("body", ""))
+        payload["javascript"]["metadata"]["assets_count"] = len(payload["javascript"]["files"])
         payload["technologies"] = self._fingerprint_technologies(payload["headers"], response.get("body", ""))
         payload["ssl"] = self._infer_ssl_details(parsed, response)
 
         if payload["headers"].get("server"):
             payload["technologies"].append(payload["headers"]["server"])
+
+        payload["subdomains"] = self._discover_subdomains(host, response.get("body", ""))
+        payload["live_hosts"] = self._identify_live_hosts(host, payload["subdomains"], response, parsed, active=self.active_checks)
+        payload["public_ports"] = self._identify_public_ports_and_services(host, response, parsed, active=self.active_checks)
+        payload["historical_urls"] = self._collect_historical_urls(host, response.get("body", ""))
+        payload["public_directories"] = self._discover_public_directories(
+            validated,
+            wordlist=(self.directory_wordlist if self.directory_wordlist is not None else (self._default_directory_wordlist() if self.active_checks else [])),
+            rate_limit=self.directory_rate_limit,
+            timeout=self.timeout,
+        )
+        payload["api_discovery"] = self._discover_api_endpoints(response.get("body", ""), payload["robots"]["entries"], payload["sitemap"]["entries"])
+        payload["auth_surface"] = self._discover_auth_surface(
+            response.get("body", ""),
+            [validated, payload["robots"]["url"], payload["sitemap"]["url"]] + payload["historical_urls"],
+        )
 
         return payload
 
@@ -156,6 +185,123 @@ class ReconnaissanceEngine:
     def _extract_js_files(self, body: str) -> List[str]:
         matches = re.findall(r"(?:src|href)=[\"']([^\"']+\.js[^\"']*)[\"']", body, flags=re.IGNORECASE)
         return matches
+
+    def _discover_subdomains(self, host: str, body: str) -> List[str]:
+        normalized_host = host.lower().strip("/")
+        base_domain = self._get_base_domain(normalized_host)
+        candidates = set()
+
+        for match in re.findall(r"https?://([^/\s'\"<>]+)", body, flags=re.IGNORECASE):
+            cleaned = match.split("//", 1)[-1].split("/", 1)[0]
+            cleaned = cleaned.split(":", 1)[0]
+            cleaned = cleaned.lower().strip(".")
+            if not cleaned or cleaned == normalized_host:
+                continue
+            if cleaned.endswith(base_domain) or cleaned == normalized_host:
+                candidates.add(cleaned)
+
+        return sorted(candidates)
+
+    def _get_base_domain(self, host: str) -> str:
+        labels = [part for part in host.split(".") if part]
+        if len(labels) <= 2:
+            return host
+        return ".".join(labels[-2:])
+
+    def _identify_live_hosts(self, host: str, subdomains: List[str], response: Dict[str, Any], parsed, active: bool = False) -> List[str]:
+        live_hosts = [host]
+        if not active:
+            return live_hosts
+
+        for candidate in subdomains[:5]:
+            probe_url = f"https://{candidate}"
+            try:
+                probe_response = requests.get(probe_url, timeout=self.timeout, allow_redirects=True)
+                if probe_response.ok:
+                    live_hosts.append(candidate)
+            except requests.RequestException:
+                continue
+
+        return sorted(set(live_hosts))
+
+    def _identify_public_ports_and_services(self, host: str, response: Dict[str, Any], parsed, active: bool = False) -> List[Dict[str, Any]]:
+        services: List[Dict[str, Any]] = []
+        if parsed.scheme in {"http", "https"}:
+            services.append({"port": 80, "service": "http", "status": "passive"})
+        if parsed.scheme == "https" or response.get("status_code"):
+            services.append({"port": 443, "service": "https", "status": "passive"})
+        if active:
+            for entry in services:
+                entry["status"] = "open"
+        return services
+
+    def _collect_historical_urls(self, host: str, body: str, timeout: int = 5) -> List[str]:
+        urls = []
+        for match in re.findall(r"https?://[^\s\"'<>]+", body, flags=re.IGNORECASE):
+            if host in match:
+                urls.append(match)
+        if urls:
+            return sorted(set(urls))[:25]
+
+        archive_url = f"https://web.archive.org/web/timemap/json/https://{host}/"
+        try:
+            response = requests.get(archive_url, timeout=timeout, allow_redirects=True)
+            response.raise_for_status()
+            for line in response.text.splitlines():
+                if "http" in line and host in line:
+                    urls.append(line.strip())
+                    if len(urls) >= 25:
+                        break
+        except requests.RequestException:
+            return []
+        return sorted(set(urls))[:25]
+
+    def _discover_public_directories(self, base_url: str, wordlist: Optional[List[str]] = None, rate_limit: float = 0.2, timeout: int = 5) -> List[str]:
+        if not wordlist:
+            return []
+
+        results = []
+        for path in wordlist:
+            candidate_url = urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
+            try:
+                response = requests.get(candidate_url, timeout=timeout, allow_redirects=False)
+                if response.status_code in {200, 301, 302, 403}:
+                    results.append(path)
+            except requests.RequestException:
+                continue
+            if rate_limit > 0:
+                time.sleep(rate_limit)
+        return results
+
+    def _default_directory_wordlist(self) -> List[str]:
+        return ["/admin", "/login", "/wp-admin", "/portal", "/api"]
+
+    def _discover_api_endpoints(self, body: str, robots_entries: List[str], sitemap_entries: List[str]) -> List[str]:
+        candidates = []
+        for entry in robots_entries + sitemap_entries:
+            if "/api/" in entry or "/graphql" in entry.lower() or "/v1" in entry:
+                candidates.append(entry)
+
+        for match in re.findall(r"/(?:api|graphql|v[0-9]+)[^\s\"'<>]*", body, flags=re.IGNORECASE):
+            candidates.append(match)
+
+        return sorted(set(candidates))
+
+    def _discover_auth_surface(self, body: str, urls: List[str]) -> List[str]:
+        patterns = [
+            r"/login",
+            r"/signup",
+            r"/register",
+            r"/logout",
+            r"/reset-password",
+            r"/profile",
+        ]
+        matches = set()
+        for pattern in patterns:
+            for entry in urls + [body]:
+                if isinstance(entry, str) and re.search(pattern, entry, flags=re.IGNORECASE):
+                    matches.add(re.search(pattern, entry, flags=re.IGNORECASE).group(0))
+        return sorted(matches)
 
     def _fingerprint_technologies(self, headers: Dict[str, Any], body: str) -> List[str]:
         technologies = []
