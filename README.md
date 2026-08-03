@@ -1,168 +1,84 @@
 # BugHunter One
 
-BugHunter One is a lightweight reconnaissance and report-generation toolkit for turning target discovery data into structured security-report artifacts. The current implementation includes a CLI-based scanner that collects basic reconnaissance information and a report engine that converts that payload into HTML, Markdown, PDF, and JSON outputs.
+BugHunter One is a lightweight, passive reconnaissance toolkit that collects publicly available information about a target, builds a structured JSON payload, and generates human-readable reports in HTML, Markdown, PDF, and JSON formats. The current implementation covers Phases 1, 2, and 3 and is designed to preserve existing behavior while adding new passive recon capabilities.
 
 ## Project overview
 
-The repository currently contains two cooperating components:
+BugHunter One is composed of two cooperating components:
 
-- The BugHunter One scanner package, implemented under src/bughunter_one, which validates a target, performs basic HTTP and DNS reconnaissance, and produces a structured JSON payload.
-- The AI report module, implemented under src/ai_report_module, which builds a report from that payload and writes output files for downstream use.
+- The scanner package in [src/bughunter_one](src/bughunter_one), which validates a target, performs passive reconnaissance, and builds a JSON payload.
+- The report package in [src/ai_report_module](src/ai_report_module), which turns the scanner payload into HTML, Markdown, PDF, and JSON reports.
 
-The current implementation is intentionally lightweight and uses a mock provider for report generation. It is designed as a starting point for future integration with additional AI backends.
+The project is intentionally passive and informational. It does not perform exploitation, brute force, authentication bypass, or invasive testing.
 
-## Features
+## Features implemented
 
-- CLI-based reconnaissance scanning for a target URL or hostname
-- Target validation and normalization before scanning
-- DNS resolution for common record types when dnspython is available
-- Fetching of robots.txt and sitemap.xml resources when reachable
-- HTTP request inspection for headers, cookies, and JavaScript file references
-- Simple technology fingerprinting from response headers and page content
-- SSL status inference for HTTP and HTTPS targets
-- Passive subdomain enumeration from discovered links and page content
-- Live host detection for the initial target and optional subdomains
-- Public port and service identification from passive reconnaissance data
-- JavaScript asset collection and metadata capture
-- Historical public URL collection from discovered links and public archive lookups
-- Public directory discovery with configurable wordlists and rate limiting
-- API endpoint discovery from robots.txt, sitemap.xml, and page content
-- Authentication surface detection for public login and account-related paths
-- Structured payload generation with sections for scan statistics, DNS, technologies, subdomains, ports, robots data, sitemap data, and metadata
-- Report generation in HTML, Markdown, PDF, and JSON formats
-- Provider abstraction for future AI backends, with a built-in mock provider
+### Phase 1
+- CLI-based target scanning
+- Project installation support via editable packaging
+- Structured payload generation
+- Report engine for HTML, Markdown, PDF, and JSON outputs
+- Mock provider support for report summaries
 
-## Installation
+### Phase 2
+- Target validation and normalization
+- DNS lookup for A/AAAA records when available
+- robots.txt parsing
+- sitemap.xml parsing
+- HTTP header collection
+- Cookie inspection
+- Technology fingerprinting from headers and page content
+- SSL status reporting for HTTP and HTTPS targets
+- JSON payload enrichment with standard reconnaissance sections
 
-From the repository root, install the runtime dependencies:
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-To install the package in editable mode:
-
-```bash
-python -m pip install -e .
-```
+### Phase 3
+- Passive subdomain enumeration hints
+- Live host detection for the target and discovered hosts
+- Public port and service identification from passive data
+- JavaScript asset collection
+- Historical public URL collection
+- Public directory discovery support
+- API endpoint discovery heuristics
+- Authentication surface detection
+- Additional report sections for the new passive findings
 
 ## Requirements
 
 - Python 3.10 or newer
 - requests
-- dnspython (recommended; if unavailable, DNS resolution falls back to an empty result)
-- pytest (for running tests)
+- dnspython
+- pytest
+
+## Installation
+
+Install runtime dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Install the project in editable mode:
+
+```bash
+python -m pip install -e .
+```
 
 ## CLI usage
 
-The package exposes the console script `bughunter-one`:
+The console entry point is `bughunter-one`.
 
 ```bash
 bughunter-one https://example.com --output payload.json --reports-dir reports
 ```
 
 Arguments:
+- `target`: required target URL or hostname
+- `--output`: optional path for the JSON payload
+- `--reports-dir`: optional directory for generated reports
 
-- `target`: required positional argument containing the target URL or hostname
-- `--output`: optional path to save the generated JSON payload
-- `--reports-dir`: optional directory where HTML, Markdown, PDF, and JSON report files will be written
+The CLI prints the JSON payload to stdout and writes the payload and reports to disk when the optional arguments are supplied.
 
-The CLI prints the reconnaissance payload as JSON to stdout and optionally writes the payload and reports to disk.
-
-## Scanner workflow
-
-The scanner workflow is implemented in `src/bughunter_one/engine.py` and follows this sequence:
-
-1. Validate and normalize the target input.
-2. Build an initial payload with target metadata and baseline scan statistics.
-3. Perform DNS resolution for the target host when possible.
-4. Fetch `robots.txt` and `sitemap.xml` resources if available.
-5. Request the target URL and inspect response headers, cookies, and JavaScript references.
-6. Fingerprint visible technologies from headers and page content.
-7. Infer basic SSL details based on the scheme.
-8. Add passive subdomain hints from the page content and discovered links.
-9. Record public port and service hints for the target.
-10. Collect historical public URLs when available.
-11. Discover public directories when a wordlist is supplied.
-12. Discover likely API endpoints and public authentication paths.
-13. Return a structured payload suitable for report generation.
-
-## Report generation workflow
-
-The report workflow is implemented in `src/ai_report_module/engine.py`.
-
-Example:
-
-```python
-from pathlib import Path
-from ai_report_module import ReportConfig, ReportEngine
-from bughunter_one.engine import ReconnaissanceEngine
-
-scanner = ReconnaissanceEngine()
-payload = scanner.scan_target("https://example.com")
-
-engine = ReportEngine(ReportConfig(output_dir=Path("reports"), provider="mock"))
-engine.write_reports(payload)
-```
-
-The `generate()` method returns a structured report dictionary. The `write_reports()` method writes:
-
-- `report.html`
-- `report.md`
-- `report.pdf`
-- `report.json`
-
-The current implementation uses a mock provider for the AI-generated summary text and writes a placeholder PDF stub rather than rendering a true PDF document.
-
-## Project architecture
-
-The core modules are:
-
-- `src/bughunter_one/cli.py`: CLI entry point for running the scanner and generating optional reports
-- `src/bughunter_one/engine.py`: reconnaissance engine and payload-building logic
-- `src/ai_report_module/engine.py`: report engine for structured report generation
-- `src/ai_report_module/providers/base.py`: abstract AI provider interface
-- `src/ai_report_module/providers/mock.py`: mock implementation used by the current default flow
-
-## Directory structure
-
-```text
-ai-report-generation-module/
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── LICENSE
-├── payload.json
-├── pyproject.toml
-├── README.md
-├── requirements.txt
-├── reports/
-├── src/
-│   ├── ai_report_module/
-│   │   ├── __init__.py
-│   │   ├── engine.py
-│   │   └── providers/
-│   │       ├── __init__.py
-│   │       ├── base.py
-│   │       └── mock.py
-│   └── bughunter_one/
-│       ├── __init__.py
-│       ├── cli.py
-│       └── engine.py
-└── tests/
-    └── test_report_engine.py
-```
-
-## Examples
-
-### Example CLI run
-
-```bash
-bughunter-one https://example.com --output payload.json --reports-dir reports
-```
-
-This writes a JSON payload to `payload.json` and report artifacts to `reports/`.
-
-### Example Python usage
+## Python API usage
 
 ```python
 from pathlib import Path
@@ -177,35 +93,140 @@ engine = ReportEngine(config)
 engine.write_reports(payload)
 ```
 
+## Scanner workflow
+
+The scanner flow in [src/bughunter_one/engine.py](src/bughunter_one/engine.py) follows this order:
+
+1. Validate and normalize the target input.
+2. Create a baseline payload with target metadata and scan statistics.
+3. Resolve DNS records when possible.
+4. Fetch and parse robots.txt and sitemap.xml.
+5. Request the target URL and inspect headers, cookies, and page content.
+6. Fingerprint visible technologies.
+7. Infer basic SSL details.
+8. Collect passive subdomain, host, port, JavaScript, and historical URL hints.
+9. Discover likely public directories, API endpoints, and authentication surfaces.
+10. Return a structured payload ready for reporting.
+
+## Report generation workflow
+
+The report engine in [src/ai_report_module/engine.py](src/ai_report_module/engine.py) builds a structured report from the scanner payload and writes the output files:
+
+- HTML report
+- Markdown report
+- PDF report
+- JSON report
+
+Example:
+
+```python
+from pathlib import Path
+from ai_report_module import ReportConfig, ReportEngine
+from bughunter_one.engine import ReconnaissanceEngine
+
+payload = ReconnaissanceEngine().scan_target("https://example.com")
+engine = ReportEngine(ReportConfig(output_dir=Path("reports"), provider="mock"))
+engine.write_reports(payload)
+```
+
+The current implementation uses a mock provider for the summary text and writes a placeholder PDF stub rather than a fully rendered PDF document.
+
+## Project architecture
+
+Key modules:
+- [src/bughunter_one/cli.py](src/bughunter_one/cli.py): CLI entry point
+- [src/bughunter_one/engine.py](src/bughunter_one/engine.py): reconnaissance engine and payload logic
+- [src/ai_report_module/engine.py](src/ai_report_module/engine.py): report generation engine
+- [src/ai_report_module/providers/base.py](src/ai_report_module/providers/base.py): provider abstraction
+- [src/ai_report_module/providers/mock.py](src/ai_report_module/providers/mock.py): default mock provider
+
+## Directory structure
+
+```text
+ai-report-generation-module/
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── src/
+│   ├── ai_report_module/
+│   │   ├── __init__.py
+│   │   ├── engine.py
+│   │   └── providers/
+│   │       ├── __init__.py
+│   │       ├── base.py
+│   │       └── mock.py
+│   └── bughunter_one/
+│       ├── __init__.py
+│       ├── cli.py
+│       └── engine.py
+└── tests/
+    ├── test_cli.py
+    ├── test_phase3_reconnaissance.py
+    └── test_report_engine.py
+```
+
 ## Output formats
 
-The scanner produces a JSON payload with the following high-level structure:
+The scanner produces a JSON payload containing sections such as:
+- `target`
+- `scan_statistics`
+- `technologies`
+- `dns`
+- `subdomains`
+- `live_hosts`
+- `open_ports`
+- `robots`
+- `sitemap`
+- `javascript`
+- `historical_urls`
+- `api_discovery`
+- `auth_surface`
+- `public_ports`
+- `public_directories`
+- `headers`
+- `cookies`
+- `ssl`
+- `interesting_resources`
+- `metadata`
 
-- `target`: normalized target host and URL
-- `scan_statistics`: discovered hosts, open ports, scan timestamps
-- `technologies`: list of detected technologies
-- `dns`: DNS records gathered for the target
-- `subdomains`: discovered subdomains from passive link analysis
-- `live_hosts`: list of responsive hosts discovered during the scan
-- `open_ports`: discovered open port records
-- `robots`: robots.txt data and parsed entries
-- `sitemap`: sitemap data and parsed entries
-- `javascript`: discovered JavaScript asset references and metadata
-- `historical_urls`: publicly archived URLs associated with the target when available
-- `api_discovery`: likely API endpoints and GraphQL paths discovered from public content
-- `auth_surface`: public authentication-related paths discovered from the target content
-- `public_ports`: passive public port and service hints
-- `public_directories`: directories discovered when a directory wordlist is used
-- `headers`, `cookies`, `ssl`: HTTP response details
-- `interesting_resources`: notable resources discovered during scanning
-- `metadata`: scanner metadata and target details
-
-The report engine writes the same content into:
-
-- HTML for browser-friendly report rendering
+The report engine writes the same information into:
+- HTML for browser-friendly presentation
 - Markdown for text-based output
-- PDF as a placeholder file in the current implementation
-- JSON for machine-readable storage and downstream processing
+- PDF as a placeholder output in the current implementation
+- JSON for structured downstream use
+
+## Example commands
+
+### CLI scan
+
+```bash
+bughunter-one https://example.com --output payload.json --reports-dir reports
+```
+
+### Python scan and report generation
+
+```python
+from pathlib import Path
+from ai_report_module import ReportConfig, ReportEngine
+from bughunter_one.engine import ReconnaissanceEngine
+
+payload = ReconnaissanceEngine().scan_target("https://example.com")
+engine = ReportEngine(ReportConfig(output_dir=Path("reports"), provider="mock"))
+engine.write_reports(payload)
+```
+
+## Testing instructions
+
+Run the full test suite:
+
+```bash
+python -m pytest -q
+```
+
+The current tests cover the CLI flow, the Phase 3 reconnaissance modules, and report generation.
 
 ## Development instructions
 
@@ -216,23 +237,13 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-The package is intentionally simple and can be extended by adding new providers under `src/ai_report_module/providers/` or by expanding the scanner logic in `src/bughunter_one/engine.py`.
+Extend the project by updating the scanner logic in [src/bughunter_one/engine.py](src/bughunter_one/engine.py) or by adding new providers under [src/ai_report_module/providers](src/ai_report_module/providers).
 
-## Testing instructions
+## Changelog summary
 
-Run the test suite with:
-
-```bash
-python -m pytest -q
-```
-
-The current tests verify that the report engine builds structured content and writes HTML, Markdown, PDF, and JSON outputs successfully.
-
-## Installation
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-## Usage
+### Latest phase: Phase 3
+- Added passive reconnaissance modules for subdomain hints, live host detection, public port/service identification, JavaScript collection, historical public URL collection, public directory discovery, API endpoint discovery, and authentication surface detection.
+- Extended the report engine to include new sections for the new passive findings.
+- Added regression and integration tests to preserve earlier behavior while expanding capabilities.
+- Verified the project remains installable, runnable, and testable from a fresh environment.
 
