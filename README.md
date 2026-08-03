@@ -10,6 +10,12 @@ A lightweight Python package for transforming scanner reconnaissance data into p
 - Uses a provider abstraction so different AI backends can be added later
 - Includes a mock provider for local development and testing
 
+## Phase 2 Highlights
+
+- Supports reconnaissance-oriented report sections for technologies, DNS, subdomains, open ports, HTTP headers, cookies, and SSL information
+- Converts structured scan payloads into a professional security report with executive and technical summaries
+- Includes a mock-backed engine that can be used locally for testing report generation end to end
+
 ## Installation
 
 ```bash
