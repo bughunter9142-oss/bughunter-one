@@ -1,0 +1,73 @@
+{
+  "target": {
+    "host": "example.com",
+    "url": "https://example.com"
+  },
+  "scan_statistics": {
+    "hosts_discovered": 1,
+    "ports_open": [
+      80,
+      443
+    ],
+    "scanned_at": "2026-08-03T03:03:36.131732+00:00"
+  },
+  "technologies": [
+    "cloudflare",
+    "cloudflare"
+  ],
+  "dns": {
+    "records": {
+      "A": [
+        "172.66.147.243",
+        "104.20.23.154"
+      ],
+      "AAAA": [
+        "2606:4700:10::ac42:93f3",
+        "2606:4700:10::6814:179a"
+      ]
+    }
+  },
+  "subdomains": [],
+  "live_hosts": [
+    "example.com"
+  ],
+  "open_ports": [],
+  "robots": {
+    "url": "https://example.com/robots.txt",
+    "entries": []
+  },
+  "sitemap": {
+    "url": "https://example.com/sitemap.xml",
+    "entries": []
+  },
+  "javascript": {
+    "files": []
+  },
+  "historical_urls": [],
+  "api_discovery": [],
+  "auth_surface": [],
+  "parameters": [],
+  "headers": {
+    "date": "Mon, 03 Aug 2026 03:03:41 GMT",
+    "content-type": "text/html",
+    "transfer-encoding": "chunked",
+    "connection": "keep-alive",
+    "server": "cloudflare",
+    "last-modified": "Sat, 01 Aug 2026 09:37:44 GMT",
+    "allow": "GET, HEAD",
+    "age": "13133",
+    "cf-cache-status": "HIT",
+    "content-encoding": "gzip",
+    "cf-ray": "a2521735ed2b1dbe-BOM"
+  },
+  "cookies": [],
+  "ssl": {
+    "tls_version": "unknown",
+    "status": "https"
+  },
+  "interesting_resources": [],
+  "metadata": {
+    "scanner": "bughunter-one",
+    "target": "https://example.com"
+  }
+}
