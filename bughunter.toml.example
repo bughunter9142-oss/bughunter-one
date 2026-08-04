@@ -17,3 +17,7 @@ file = "logs/bughunter-one.jsonl"
 dns = true
 robots = true
 sitemap = true
+
+[plugins]
+# third-party entry-point plugin names can be enabled or disabled here
+# example-enricher = false

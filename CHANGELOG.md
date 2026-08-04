@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Added
+- Phase 5 release-candidate support: plugin architecture, CI/CD, Docker, packaging metadata, release assets, and operational documentation.
+- Plugin and integration regression coverage.
+
+### Added
 - Phase 4 local dashboard, TOML configuration, structured logging, retry controls, and dashboard/configuration tests.
 - `bughunter-dashboard` console script and `bughunter.toml.example`.
 

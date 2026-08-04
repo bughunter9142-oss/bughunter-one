@@ -11,10 +11,11 @@ from bughunter_one.engine import ReconnaissanceEngine
 
 def test_toml_configuration_loads_all_supported_options(tmp_path):
     config_file = tmp_path / "bughunter.toml"
-    config_file.write_text("""[scan]\ntimeout = 9\nuser_agent = "TestAgent"\nconcurrency = 4\nactive_checks = true\nrate_limit = 0.5\nretries = 2\n[reports]\noutput_dir = "out"\n[logging]\nlevel = "DEBUG"\nfile = "logs/app.jsonl"\n[modules]\ndns = false\n""", encoding="utf-8")
+    config_file.write_text("""[scan]\ntimeout = 9\nuser_agent = "TestAgent"\nconcurrency = 4\nactive_checks = true\nrate_limit = 0.5\nretries = 2\n[reports]\noutput_dir = "out"\n[logging]\nlevel = "DEBUG"\nfile = "logs/app.jsonl"\n[modules]\ndns = false\n[plugins]\ntagger = false\n""", encoding="utf-8")
     config = load_config(config_file)
     assert (config.timeout, config.user_agent, config.concurrency, config.retries) == (9, "TestAgent", 4, 2)
     assert config.active_checks and not config.module_enabled("dns")
+    assert config.enabled_plugins == {"tagger": False}
     assert config.report_output_dir == Path("out")
 
 

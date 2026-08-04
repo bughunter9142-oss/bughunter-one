@@ -1,0 +1,19 @@
+[scan]
+timeout = 10
+user_agent = "BugHunter-One/0.3.0"
+concurrency = 2
+active_checks = false
+rate_limit = 0.2
+retries = 1
+
+[reports]
+output_dir = "reports"
+
+[logging]
+level = "INFO"
+
+[modules]
+dns = true
+
+[plugins]
+# third-party-plugin = false

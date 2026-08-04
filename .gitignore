@@ -33,3 +33,4 @@ reports/
 *.log
 .aider*
 .pytest-tmp/
+.verify-venv/

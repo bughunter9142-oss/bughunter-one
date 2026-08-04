@@ -11,6 +11,8 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
+from .plugins import PluginManager
+
 
 class ReconnaissanceEngine:
     def __init__(
@@ -23,6 +25,7 @@ class ReconnaissanceEngine:
         retries: int = 1,
         concurrency: int = 2,
         enabled_modules: Optional[Dict[str, bool]] = None,
+        plugin_manager: Optional[PluginManager] = None,
     ):
         self.timeout = timeout
         self.active_checks = active_checks
@@ -33,6 +36,7 @@ class ReconnaissanceEngine:
         self.concurrency = max(1, concurrency)
         self.enabled_modules = enabled_modules or {}
         self.logger = logging.getLogger("bughunter_one.scanner")
+        self.plugin_manager = plugin_manager
 
     def scan_target(self, target: str) -> Dict[str, Any]:
         self.logger.info("scan_started target=%s", target)
@@ -108,6 +112,8 @@ class ReconnaissanceEngine:
             [validated, payload["robots"]["url"], payload["sitemap"]["url"]] + payload["historical_urls"],
         ) if self._module_enabled("auth_surface") else []
 
+        if self.plugin_manager is not None:
+            self.plugin_manager.apply_all(payload)
         self.logger.info("scan_completed target=%s", host)
         return payload
 

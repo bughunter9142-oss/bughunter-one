@@ -1,0 +1,15 @@
+{
+  "target": {"host": "example.com", "url": "https://example.com"},
+  "scan_statistics": {"hosts_discovered": 1, "ports_open": [80, 443]},
+  "technologies": ["nginx"],
+  "dns": {"records": {"A": ["93.184.216.34"]}},
+  "subdomains": ["www.example.com"],
+  "live_hosts": ["example.com"],
+  "public_ports": [{"port": 443, "service": "https", "status": "passive"}],
+  "robots": {"entries": []}, "sitemap": {"entries": []},
+  "javascript": {"files": ["/app.js"]}, "historical_urls": [],
+  "api_discovery": ["/api/v1"], "auth_surface": ["/login"],
+  "headers": {"server": "nginx"}, "cookies": [],
+  "ssl": {"status": "https", "tls_version": "unknown"},
+  "metadata": {"scanner": "bughunter-one"}
+}

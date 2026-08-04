@@ -1,0 +1,14 @@
+services:
+  scanner:
+    build: .
+    volumes:
+      - ./artifacts:/data
+    command: ["https://example.com", "--output", "/data/payload.json", "--reports-dir", "/data/reports"]
+  dashboard:
+    build: .
+    entrypoint: ["bughunter-dashboard"]
+    command: ["/data/payload.json", "--host", "0.0.0.0", "--port", "8765"]
+    volumes:
+      - ./artifacts:/data:ro
+    ports:
+      - "8765:8765"

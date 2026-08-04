@@ -27,6 +27,7 @@ class ScanConfig:
     rate_limit: float = 0.2
     retries: int = 1
     enabled_modules: dict[str, bool] = field(default_factory=dict)
+    enabled_plugins: dict[str, bool] = field(default_factory=dict)
 
     def module_enabled(self, name: str) -> bool:
         return self.enabled_modules.get(name, True)
@@ -43,6 +44,7 @@ def load_config(path: str | Path | None = None) -> ScanConfig:
     reports = data.get("reports", {})
     logging = data.get("logging", {})
     modules = data.get("modules", {})
+    plugins = data.get("plugins", {})
     return ScanConfig(
         timeout=int(scan.get("timeout", 5)),
         user_agent=str(scan.get("user_agent", "BugHunter-One/0.2.0")),
@@ -54,4 +56,5 @@ def load_config(path: str | Path | None = None) -> ScanConfig:
         logging_level=str(logging.get("level", "INFO")).upper(),
         log_file=Path(logging["file"]) if logging.get("file") else None,
         enabled_modules={str(name): bool(enabled) for name, enabled in modules.items()},
+        enabled_plugins={str(name): bool(enabled) for name, enabled in plugins.items()},
     )

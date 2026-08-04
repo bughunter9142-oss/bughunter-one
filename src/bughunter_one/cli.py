@@ -7,6 +7,7 @@ from ai_report_module import ReportConfig, ReportEngine
 from .config import load_config
 from .engine import ReconnaissanceEngine
 from .logging_utils import configure_logging
+from .plugins import PluginManager
 
 
 def run_cli(argv=None):
@@ -16,6 +17,7 @@ def run_cli(argv=None):
     parser.add_argument("--reports-dir", default=None, help="Optional directory for generated HTML/Markdown/PDF/JSON reports")
     parser.add_argument("--config", default=None, help="Optional TOML configuration file")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--version", action="version", version="BugHunter One 0.3.0")
     args = parser.parse_args(argv)
 
     config = load_config(args.config)
@@ -26,6 +28,7 @@ def run_cli(argv=None):
         directory_rate_limit=config.rate_limit, user_agent=config.user_agent,
         retries=config.retries, concurrency=config.concurrency,
         enabled_modules=config.enabled_modules,
+        plugin_manager=PluginManager.discover(config.enabled_plugins),
     )
     payload = engine.scan_target(args.target)
     if isinstance(payload.get("target"), dict) and "host" in payload["target"] and payload["target"]["host"].startswith("http"):

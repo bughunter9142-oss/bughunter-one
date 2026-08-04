@@ -15,3 +15,5 @@ Contributions are welcome.
 - Keep the code simple and readable.
 - Use descriptive names for functions and variables.
 - Prefer small, focused changes.
+- Run `python -m compileall -q src` and `ruff check src tests` when the development extras are installed.
+- Keep plugins failure-isolated and preserve the existing payload schema.

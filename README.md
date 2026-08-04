@@ -47,6 +47,13 @@ Its goals are to provide a small, extensible reconnaissance workflow, keep colle
 - Expanded documentation and regression tests
 - Configurable timeout, user agent, rate limit, and active checks
 
+### Phase 5
+
+- Optional post-scan plugins discovered through Python entry points
+- GitHub Actions verification on push and pull requests
+- Docker image and Docker Compose scanner/dashboard services
+- Release metadata, release notes, examples, and operational guides
+
 ## Installation
 
 Clone and install the project in editable mode:
@@ -162,17 +169,30 @@ Module names include `dns`, `robots`, `sitemap`, `headers`, `cookies`, `javascri
 
 ```text
 bughunter-one/
+├── .github/workflows/ci.yml
 ├── bughunter.toml.example
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
+├── Dockerfile
 ├── LICENSE
 ├── README.md
+├── RELEASE_NOTES.md
+├── docker-compose.yml
+├── examples/
+│   ├── bughunter.toml
+│   ├── payload.json
+│   └── reports/report.md
 ├── pyproject.toml
 ├── requirements.txt
+├── scripts/generate_example_reports.py
 ├── docs/
 │   ├── CONFIGURATION.md
+│   ├── DASHBOARD_GUIDE.md
 │   ├── DEVELOPER_GUIDE.md
+│   ├── FAQ.md
 │   ├── INSTALLATION.md
+│   ├── PLUGIN_DEVELOPMENT.md
+│   ├── TROUBLESHOOTING.md
 │   └── USER_GUIDE.md
 ├── src/
 │   ├── ai_report_module/
@@ -185,11 +205,13 @@ bughunter-one/
 │       ├── config.py
 │       ├── dashboard.py
 │       ├── engine.py
-│       └── logging_utils.py
+│       ├── logging_utils.py
+│       └── plugins.py
 └── tests/
     ├── test_cli.py
     ├── test_phase3_reconnaissance.py
     ├── test_phase4.py
+    ├── test_plugins.py
     ├── test_reconnaissance_engine.py
     └── test_report_engine.py
 ```
@@ -235,12 +257,35 @@ If the default Windows pytest temporary directory is unavailable, use a workspac
 python -m pytest -q --basetemp .pytest-tmp
 ```
 
+## Plugins
+
+Plugins are optional post-scan payload enrichers. A plugin exposes a `name` and `apply(payload)` method, and is registered using the `bughunter_one.plugins` Python entry-point group. Enable or disable an installed plugin in TOML:
+
+```toml
+[plugins]
+my-plugin = true
+```
+
+Plugin failures are isolated: the scan completes and records the error under `metadata.plugin_errors`.
+
+## Docker
+
+Build and run a sample scan, then serve its dashboard:
+
+```bash
+docker compose run --rm scanner
+docker compose up dashboard
+```
+
+The scanner writes `/data/payload.json` and reports through the mounted `artifacts/` directory. See [docs/DASHBOARD_GUIDE.md](docs/DASHBOARD_GUIDE.md) for dashboard details.
+
 ## Roadmap
 
 - Phase 1 ✅
 - Phase 2 ✅
 - Phase 3 ✅
 - Phase 4 ✅
+- Phase 5 ✅
 - Phase 5 (Planned)
 
 ## Contributing
