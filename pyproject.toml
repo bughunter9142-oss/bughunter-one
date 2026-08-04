@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bughunter-one"
+version = "0.2.0"
+description = "Passive reconnaissance engine and local results dashboard"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "BugHunter One contributors"}]
+keywords = ["reconnaissance", "passive-security", "dashboard"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31.0", "dnspython>=2.8.0", "pytest>=8.0.0"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+bughunter-one = "bughunter_one.cli:run_cli"
+bughunter-dashboard = "bughunter_one.dashboard:run_dashboard_cli"

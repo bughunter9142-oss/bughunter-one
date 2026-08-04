@@ -1,0 +1,19 @@
+[scan]
+timeout = 5
+user_agent = "BugHunter-One/0.2.0"
+concurrency = 2
+active_checks = false
+rate_limit = 0.2
+retries = 1
+
+[reports]
+output_dir = "reports"
+
+[logging]
+level = "INFO"
+file = "logs/bughunter-one.jsonl"
+
+[modules]
+dns = true
+robots = true
+sitemap = true
